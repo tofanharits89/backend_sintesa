@@ -1,0 +1,7 @@
+node_modules
+request.rest
+.env
+venv
+controllers/GPT/*
+logs
+public

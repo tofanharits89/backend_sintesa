@@ -1,0 +1,38 @@
+GET https://sintesa.kemenkeu.go.id:3000/api/v1/chatmessage/f6f84f57-c24c-4152-a493-04e652844580?order=DESC&feedback=true
+content-type: application/json
+Authorization: GfSszLgSzPGFQ1gFRrs9X3kGbGjMOQyeaX8WNZJBLXI
+###
+POST  http://localhost:5000/login
+
+Content-Type: "application/json"
+{
+    "username" : "admin",
+    "password" : "admin"
+}
+###
+GET   http://localhost:5000/random?queryParams=SELECT a.kddept,a.pagu FROM dbhistori.pagu_real_detail_harian_januari_2023 a
+
+###
+GET    http://localhost:5000/users/tes?queryParams=select * from monev2023.m_detail_harian_part_2023 where kddept='xx'
+###
+GET    http://localhost:5000/alokasi
+
+###
+GET http://spanint.kemenkeu.go.id/wstkd/data/dau/montunda?thang=2023&periode=01&gelombang=1&jenis_tkd=0101&kode_pemda=0201
+
+content-type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6Njc4LCJ1c2VybmFtZSI6ImRwYV9vcHJfMDAxIiwibmFtZSI6Ik9wZXJhdG9yIERpcmVrdG9yYXQgUGVsYWtzYW5hYW4gQW5nZ2FyYW4iLCJlbWFpbCI6bnVsbCwibG9naW5fbWV0aG9kIjoib21zcGFuIiwibG9naW5fZGF0ZSI6ImRwYV9vcHJfMDAxXzE2ODYxNDQ1ODg3NDAiLCJ0aGFuZyI6IjIwMjMiLCJ1c2VyX2luZm8iOnsicm9sZV9pZCI6ODEsInJvbGVfY29kZSI6ImRpdHBhIiwib3JnX2lkIjozLCJvcmdfY29kZSI6ImRqcGIiLCJvcmdfbmFtZSI6IkRpdGplbiBQZXJiZW5kYWhhcmFhbiIsImtwcG4iOm51bGwsImthbndpbCI6bnVsbCwiYmEiOm51bGwsImtvZGVfc2F0a2VyIjpudWxsLCJzdWJyb2xlX2lkIjoxNjUsInN1YnJvbGVfY29kZSI6ImRpdHBhX29wciJ9LCJpYXQiOjE2ODYxNDQ1ODgsImV4cCI6MTY4NjE3MzM4OH0.CMcdOUwX0KE3gdX07fbirq51jaDQSZmQFjo1OU8Vt-A
+###
+
+
+###
+POST  https://sintesa.kemenkeu.go.id:88/login
+
+Content-Type: "application/json"
+{"password":"api2023","username":"omspantkd"}
+
+###
+POST  https://sintesa.kemenkeu.go.id:88/login
+
+Content-Type: "application/json"
+{"password":"api2023","username":"omspantkd"}
