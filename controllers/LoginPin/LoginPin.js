@@ -121,6 +121,7 @@ export const LoginPIN = async (req, res) => {
 
     const { mode, tampil, tampilverify, status, session, capcay } = setting;
 
+    console.log("ACCESS_TOKEN_SECRET:", process.env.ACCESS_TOKEN_SECRET);
     const accessToken = jwt.sign(
       {
         mode,

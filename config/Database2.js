@@ -3,9 +3,9 @@ import fs from "fs";
 
 const dbName = "monev2023";
 const dbUser = "root";
-const dbPassword = "dabantek2018";
-const dbHost = "10.216.208.137";
-const dbPort = "3352";
+const dbPassword = "";
+const dbHost = "localhost";
+const dbPort = "3306";
 
 const formatDate = (date) => {
   return new Intl.DateTimeFormat("id-ID", {

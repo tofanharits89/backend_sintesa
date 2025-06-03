@@ -131,6 +131,7 @@ export const Register = async (req, res) => {
 };
 
 export const Login = async (req, res) => {
+  console.log('LOGIN REQUEST:', req.body)
   try {
     const user = await Users.findAll({
       where: {

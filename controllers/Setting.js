@@ -57,15 +57,23 @@ export const getMode = async (req, res) => {
   try {
     const settings = await Setting.findOne({
       attributes: ["capcay"],
+      where: { id: 1 },
     });
+    console.log("Hasil Query:", settings);
 
-    res.json(settings);
+    if (!settings) {
+      return res.status(404).json({ error: "Setting not found" });
+    }
+
+    // Coba kirim manual, pastikan bukan instance
+    res.json({ capcay: String(settings.capcay) }); // atau tanpa String jika memang sudah string
   } catch (error) {
-    // console.log(error);
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+
 export const log_menu = async (req, res) => {
   try {
     const result = await Log_menu.findAll({

@@ -14,40 +14,69 @@ import { errorHandler } from "./middleware/VerifyToken.js";
 import Users from "./models/UserModel.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import Isu_Model from "./models/kinerja/isumodel.js";
+import RekamBPS from "./models/rekambps_model.js";
+import RekamBapanas from "./models/rekambapanas_model.js";
+import RekamTriwulan from "./models/rekamtriwulan_model.js";
+// --- Tambahkan router replypesan di sini:
+import replypesanRoutes from "./routes/replypesan.js";
+import ReplyPesan from "./models/replypesan.js";
+
+
 
 dotenv.config();
-const sessionStore = SequelizeStore(session.Store);
-const store = new sessionStore({
-  db: db,
-});
 
+// Konversi __dirname untuk ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Inisialisasi express
 const app = express();
 app.disable("x-powered-by");
 
-// Load SSL certificate files
-const privateKey = fs.readFileSync("./ssl/sintesa_kemenkeu_go_id.key", "utf8");
-const certificate = fs.readFileSync("./ssl/sintesa_kemenkeu_go_id.crt", "utf8");
+// Sertifikat SSL
+const privateKey = fs.readFileSync("./ssl/localhost-key.pem", "utf8");
+const certificate = fs.readFileSync("./ssl/localhost.pem", "utf8");
 
 const credentials = {
   key: privateKey,
   cert: certificate,
-  // ca: ca,
 };
 
-// Create HTTPS server
+// Membuat HTTPS server
 const server = https.createServer(credentials, app);
 
-try {
-  await db.authenticate();
-  console.log("Database Connected...");
-} catch (error) {
-  console.error(error);
-}
+// // Koneksi dan sinkron DB
+// try {
+//   await db.authenticate();
+//   console.log("✅ Koneksi ke database berhasil.");
 
+//   await Isu_Model.sync({ alter: true });
+//   console.log("✅ Tabel 'isu' disinkronkan (dibuat jika belum ada).");
+// } catch (error) {
+//   console.error("❌ Gagal koneksi atau sinkronisasi:", error);
+// }
+
+// Middleware umum
 app.use(express.static("public"));
 app.use(compression());
+app.use(cookieParser());
+app.use(express.json());
 
-// Configure CORS
+// Session config
+const sessionStore = SequelizeStore(session.Store);
+const store = new sessionStore({ db: db });
+
+const expressSession = session({
+  secret: "mebe23",
+  resave: false,
+  saveUninitialized: false,
+  store: store,
+});
+
+app.use(expressSession);
+
+// CORS config
 const corsOptions = {
   credentials: true,
   methods: ["POST", "GET", "DELETE", "PUT", "PATCH"],
@@ -61,54 +90,43 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-const expressSession = session({
-  secret: "mebe23",
-  resave: false,
-  store: store,
-  saveUninitialized: false,
-});
 
-app.use(expressSession);
-app.use(cookieParser());
-app.use(express.json());
+// Router utama
+app.use("", router);
 
+// Middleware error handler
+app.use(errorHandler);
+
+// Jalankan HTTPS server
 const port = process.env.PORT || 88;
-
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
+// Socket.IO
 const ioServer = new Server(server, {
   cors: corsOptions,
-  // pingTimeout: 60000,
 });
 
 let mySession;
 let ip;
+
 app.use((req, res, next) => {
-  mySession = req.session.name ? req.session.name : "guest";
-  ip = req.session.ip && req.session.ip;
+  mySession = req.session.name || "guest";
+  ip = req.session.ip;
   next();
 });
 
-let userLogin = [];
-const getCurrentTimestamp = () => new Date();
 ioServer.on("connection", async (socket) => {
   if (mySession) {
     try {
-      // Periksa waktu sekarang
-      const currentTime = getCurrentTimestamp();
-
-      // Ambil data pengguna
+      const currentTime = new Date();
       const user = await Users.findOne({
         where: { name: mySession, online: "true" },
       });
 
       if (user && user.online) {
-        // Hitung selisih waktu dari updatedAt ke waktu sekarang
         const updatedAtTimeDiff = currentTime - new Date(user.updatedAt);
-
-        // Ubah status menjadi false jika updatedAt lebih dari 5 menit
         if (updatedAtTimeDiff > 5 * 60 * 1000) {
           await Users.update(
             { online: "false" },
@@ -116,44 +134,55 @@ ioServer.on("connection", async (socket) => {
           );
         }
       }
+
+      await Users.update(
+        { online: "true", ip: ip },
+        { where: { name: mySession } }
+      );
+
+      ioServer.emit("statusberubah", new Date());
     } catch (error) {
       console.error(error);
-    }
-
-    try {
-      Users.update({ online: "true", ip: ip }, { where: { name: mySession } });
-      ioServer.emit("statusberubah", new Date());
-      userLogin.push(mySession);
-      // console.log("User connected: " + mySession + ", IP: " + ip);
-    } catch (error) {
-      console.log(error);
     }
   }
 
   socket.on("disconnect", async () => {
     if (mySession) {
       try {
-        Users.update({ online: false, ip: ip }, { where: { name: mySession } });
+        await Users.update(
+          { online: false, ip: ip },
+          { where: { name: mySession } }
+        );
         ioServer.emit("statusberubah", new Date());
-        userLogin = userLogin.filter((user) => user !== mySession);
-        // console.log("User disconnected: " + mySession + ", IP: " + ip);
       } catch (error) {
-        console.log(error);
+        console.error(error);
       }
     }
   });
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Menjadikan folder monev_pnbp sebagai folder publik
+// Folder publik khusus
 app.use(
   "/monev_pnbp",
   express.static(path.join(__dirname, "public/monev_pnbp"))
 );
-app.listen(5000, () => console.log("Server berjalan di port 5000"));
 
-app.use("/", router);
+// Export ioServer jika diperlukan di tempat lain
 export default ioServer;
-app.use(errorHandler);
+
+//DB kertas kerja MBG
+// try {
+//   await db.authenticate();
+//   console.log("✅ Koneksi ke database berhasil.");
+
+//   // await Isu_Model.sync({ alter: true });
+//   // await RekamBPS.sync({ alter: true });
+//   // await RekamBapanas.sync({ alter: true });
+//   // await RekamTriwulan.sync({ alter: true });
+
+//   console.log("✅ Semua tabel disinkronkan.");
+// } catch (error) {
+//   console.error("❌ Gagal koneksi atau sinkronisasi:", error);
+// }
+
+

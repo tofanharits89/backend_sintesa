@@ -4,7 +4,7 @@ import UploadKPPNModel from "../../models/uploadkppn/uploadKPPNModel.js";
 import fs from "fs";
 
 // Path baru di Drive D
-const uploadDir = "D:/UploadKPPN";
+const uploadDir = "./uploads/UploadKPPN";
 
 // Pastikan folder tujuan ada
 if (!fs.existsSync(uploadDir)) {
@@ -55,7 +55,7 @@ export const getUpload = async (req, res) => {
     const fileSize = req.file.size;
     const ext = path.extname(req.file.originalname);
     const fileName = req.file.filename;
-    const url = `D:/UploadKPPN/${fileName}`; // Path baru
+    const url = `./uploads/UploadKPPN/${fileName}`;
     const allowedType = [".rar", ".zip"];
 
     if (!allowedType.includes(ext.toLowerCase())) {

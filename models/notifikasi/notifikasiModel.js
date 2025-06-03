@@ -28,14 +28,6 @@ const Notifikasi_Model = db.define(
       type: DataTypes.STRING(255),
       allowNull: true,
     },
-    filename: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
-    jeniskritik: {
-      type: DataTypes.STRING(255),
-      allowNull: true,
-    },
     isi: {
       type: DataTypes.TEXT,
       allowNull: true,
@@ -52,9 +44,23 @@ const Notifikasi_Model = db.define(
       type: DataTypes.CHAR,
       allowNull: true,
     },
+    // TAMBAHKAN INI
+    parent_id: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     freezeTableName: true,
+    timestamps: false, // Atau true, sesuai kebutuhan
   }
 );
 

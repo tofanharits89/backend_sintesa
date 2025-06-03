@@ -357,6 +357,7 @@ export const getDataKinerja = async (req, res) => {
 
 export const chartKinerja = async (req, res) => {
   const queryParams = req.query.queryParams;
+console.log(queryParams);
 
   const decryptedData = decryptData(queryParams).replace(/"/g, "");
 

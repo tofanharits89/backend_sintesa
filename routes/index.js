@@ -1,4 +1,5 @@
 import express from "express";
+const router = express.Router();
 import {
   Aktifasi,
   getUserbyId,
@@ -194,6 +195,13 @@ import {
 } from "../controllers/GPT/flowise.js";
 import { queryVectara } from "../controllers/Vectara/vectaraController.js";
 
+
+
+import { getNotifikasiById } from "../controllers/Notifikasi/Notifikasi_Controller.js";
+router.get("/api/notifikasi/:id", getNotifikasiById);
+
+
+
 import {
   tayangMonitoringBlokir,
   tayangMonitoringBlokirSatker,
@@ -214,7 +222,29 @@ import {
   simpanKomoditas,
 } from "../controllers/BGN/MbgControllers.js";
 
-const router = express.Router();
+
+import {
+  getAllBPS, rekamBPS, deleteBPS, updateBPS,
+  getAllBapanas, rekamBapanas, deleteBapanas,
+  getAllTriwulan, rekamTriwulan, deleteTriwulan,
+} from "../controllers/kertaskerjambg_cont.js";
+
+
+import { createReply } from "../controllers/replypesan_controller.js";
+
+router.get("/rekam/bps", getAllBPS);
+router.post("/rekam/bps", rekamBPS);
+router.delete("/rekam/bps/:id", deleteBPS);
+router.put("/rekam/bps/:id", updateBPS);
+
+router.get("/rekam/bapanas", getAllBapanas);
+router.post("/rekam/bapanas", rekamBapanas);
+router.delete("/rekam/bapanas/:id", deleteBapanas);
+
+router.get("/rekam/triwulan", getAllTriwulan);
+router.post("/rekam/triwulan", rekamTriwulan);
+router.delete("/rekam/triwulan/:id", deleteTriwulan);
+
 
 router.get("/users", verifyToken, getUsers);
 router.get("/cekusers", verifyToken, checkUser);
@@ -523,5 +553,9 @@ router.post("/bgn/login", verifyToken, getDataBGN);
 router.post("/mbg/simpanKomoditas", verifyToken, simpanKomoditas);
 router.delete("/mbg/hapusKomoditas/:id/:kdkanwil", verifyToken, hapusKomoditas);
 router.get("/mbg/download", verifyToken, getTableMbg);
+//router buat balas pesan
+
+// 
+router.post("/api/replypesan/:id", createReply);
 
 export default router;

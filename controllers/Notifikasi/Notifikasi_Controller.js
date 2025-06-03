@@ -230,3 +230,16 @@ export const ubahStatusOnline = async (req, res) => {
     console.log(error);
   }
 };
+
+export const getNotifikasiById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const notif = await Notifikasi_Model.findByPk(id);
+    if (!notif) {
+      return res.status(404).json({ error: "Notifikasi tidak ditemukan" });
+    }
+    res.json(notif);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

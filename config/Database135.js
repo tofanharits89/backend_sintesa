@@ -3,8 +3,8 @@ import fs from "fs";
 
 const dbName = "repport_tkd";
 const dbUser = "root";
-const dbPassword = "ktsjkt2010!";
-const dbHost = "10.216.208.135";
+const dbPassword = "";
+const dbHost = "localhost";
 const dbPort = "3306";
 
 const formatDate = (date) => {
