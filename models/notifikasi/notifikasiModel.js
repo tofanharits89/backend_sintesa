@@ -43,24 +43,16 @@ const Notifikasi_Model = db.define(
     status: {
       type: DataTypes.CHAR,
       allowNull: true,
-    },
-    // TAMBAHKAN INI
+    },    // TAMBAHKAN INI
     parent_id: {
       type: DataTypes.BIGINT,
       allowNull: true,
     },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
-    updatedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
+    // createdAt dan updatedAt akan dikelola otomatis oleh timestamps: true
   },
   {
     freezeTableName: true,
-    timestamps: false, // Atau true, sesuai kebutuhan
+    timestamps: true, // Ubah ini dari false ke true agar createdAt dan updatedAt otomatis terisi
   }
 );
 

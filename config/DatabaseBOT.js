@@ -3,7 +3,7 @@ import fs from "fs";
 
 const dbName = "bot";
 const dbUser = "root";
-const dbPassword = "";
+const dbPassword = "ktsjkt2010!";
 const dbHost = "localhost";
 const dbPort = "3306";
 
@@ -38,7 +38,7 @@ try {
       connectTimeout: 60000, // Atur timeout koneksi ke 60 detik (opsional, sesuaikan sesuai kebutuhan)
     },
     pool: {
-      max: 20,
+      max: 4,
       min: 0,
       acquire: 30000,
       idle: 10000,

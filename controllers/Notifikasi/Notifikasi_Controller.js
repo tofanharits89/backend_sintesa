@@ -22,12 +22,15 @@ export const simpanNotifikasi = async (req, res) => {
   try {
     if (destination === "00") {
       userList = await User_Model.findAll();
-    } else {
-      // If destination is not 0, apply where clause
+    } else if (destination.includes("@") || destination.length > 2) {
+      // Jika destination adalah username spesifik
       userList = await User_Model.findAll({
-        where: {
-          role: destination,
-        },
+        where: { username: destination },
+      });
+    } else {
+      // Jika destination adalah role
+      userList = await User_Model.findAll({
+        where: { role: destination },
       });
     }
     //console.log(userList);

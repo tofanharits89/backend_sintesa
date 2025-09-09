@@ -224,16 +224,33 @@ export const randomQueryTematikApbd = async (req, res) => {
     decryptData(queryParams).replace(/"/g, "")
   );
 
+  // console.log("Decrypted Data:", decryptedData);
+
   try {
+    //     const resultsQuery = `
+    //   ${decryptedData}
+    //   ORDER BY a.kdprov, a.kdkabkota, a.kdkppn, a.kdsatker DESC
+
+    //   LIMIT ${limit} OFFSET ${offset}
+    // `;
     const resultsQuery = `
   ${decryptedData}
-  ORDER BY a.kdprov, a.kdkabkota, a.kdkppn, a.kdsatker DESC
-  LIMIT ${limit} OFFSET ${offset}
+  ORDER BY a.kdprov DESC
+    LIMIT ${limit} OFFSET ${offset}
 `;
+    // let totalCountQuery;
 
     const totalCountQuery = `
       SELECT COUNT(*) AS totalCount,SUM(JAN) AS TOTAL_JAN,SUM(FEB) AS TOTAL_FEB,SUM(MAR) AS TOTAL_MAR,SUM(APR) AS TOTAL_APR,SUM(MEI) AS TOTAL_MEI,SUM(JUN) AS TOTAL_JUN,SUM(JUL) AS TOTAL_JUL,SUM(AGS) AS TOTAL_AGS,SUM(SEP) AS TOTAL_SEP,SUM(OKT) AS TOTAL_OKT,SUM(NOV) AS TOTAL_NOV,SUM(DES) AS TOTAL_DES FROM (${decryptedData}) AS totalCountSubquery
     `;
+
+    // console.log("Results Query:", resultsQuery);
+
+    // const totalCountQuery = `
+    //   SELECT COUNT(*) AS totalCount,COALESCE(SUM(periode1),0) AS TOTAL_JAN, COALESCE(SUM(periode2),0) AS TOTAL_FEB, COALESCE(SUM(periode3),0) AS TOTAL_MAR,COALESCE(SUM(periode4),0) AS TOTAL_APR,COALESCE(SUM(periode5),0) AS TOTAL_MEI,COALESCE(SUM(periode6),0) AS TOTAL_JUN,COALESCE(SUM(periode7),0) AS TOTAL_JUL,COALESCE(SUM(periode8),0) AS TOTAL_AGS,COALESCE(SUM(periode9),0) AS TOTAL_SEP,COALESCE(SUM(periode10),0) AS TOTAL_OKT,COALESCE(SUM(periode11),0) AS TOTAL_NOV,COALESCE(SUM(periode12),0) AS TOTAL_DES FROM (${decryptedData}) AS totalCountSubquery
+    // `;
+
+    // console.log("Total Count Query:", totalCountQuery);
 
     const [results, totalCountResult] = await Promise.all([
       db.query(resultsQuery, {
@@ -249,7 +266,6 @@ export const randomQueryTematikApbd = async (req, res) => {
     ]);
 
     const totalCount = totalCountResult[0].totalCount;
-    // const totalPagu = totalCountResult[0].totalPagu;
     const totalJan = totalCountResult[0].TOTAL_JAN;
     const totalFeb = totalCountResult[0].TOTAL_FEB;
     const totalMar = totalCountResult[0].TOTAL_MAR;
@@ -263,7 +279,7 @@ export const randomQueryTematikApbd = async (req, res) => {
     const totalNov = totalCountResult[0].TOTAL_NOV;
     const totalDes = totalCountResult[0].TOTAL_DES;
 
-    // const totalBlokir = totalCountResult[0].totalBlokir;
+    const totalBlokir = totalCountResult[0].totalBlokir;
 
     res.json({
       result: results,
@@ -271,7 +287,6 @@ export const randomQueryTematikApbd = async (req, res) => {
       limit: limit,
       totalPages: Math.ceil(totalCount / limit),
       totalRows: totalCount,
-      // totalPagu: totalPagu,
       totalJan: totalJan,
       totalFeb: totalFeb,
       totalMar: totalMar,
@@ -284,8 +299,91 @@ export const randomQueryTematikApbd = async (req, res) => {
       totalOkt: totalOkt,
       totalNov: totalNov,
       totalDes: totalDes,
-      // totalBlokir: totalBlokir,
+      totalBlokir: totalBlokir,
     });
+
+    const clientIP =
+      req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+
+    await Log_menu.create({
+      ip: clientIP,
+      username: req.query.user,
+      nm_menu: "TEMATIK_APBD",
+    });
+  } catch (error) {
+    if (error.original && error.original.sqlMessage) {
+      res.status(500).json({
+        error: error.original.sqlMessage,
+      });
+    } else {
+      res.status(500).json({
+        error: "Terjadi kesalahan dalam pengambilan data.",
+      });
+    }
+  }
+};
+
+export const randomQueryTematikApbd2 = async (req, res) => {
+  const queryParams = req.query.queryParams;
+  const limit = parseInt(req.query.limit) || 50;
+  const page = parseInt(req.query.page) || 0;
+  const offset = page * limit;
+
+  const decryptedData = decodeURIComponent(
+    decryptData(queryParams).replace(/"/g, "")
+  );
+
+  // console.log("Decrypted Data:", decryptedData);
+  try {
+    // Gunakan query khusus untuk pagu seperti yang diminta
+    const resultsQuery = `
+      SELECT a.kdprov, ROUND(SUM(a.pagu)/1, 0) AS PAGU
+      FROM monev2025.a_pagu_bkpk_apbd_2025 a
+      GROUP BY a.kdprov
+      ORDER BY a.kdprov DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+
+    // Jika decryptedData berbeda, gunakan ini sebagai alternatif
+    // const resultsQuery = `
+    //   ${decryptedData}
+    //   ORDER BY a.kdprov DESC
+    //   LIMIT ${limit} OFFSET ${offset}
+    // `;
+
+    const totalCountQuery = `
+      SELECT COUNT(*) AS totalCount, SUM(PAGU) AS TOTAL_PAGU
+      FROM (${resultsQuery}) AS totalCountSubquery
+    `;
+
+    // console.log("Results Query:", resultsQuery);
+    // console.log("Total Count Query:", totalCountQuery);
+
+    const [results, totalCountResult] = await Promise.all([
+      db.query(resultsQuery, {
+        type: Sequelize.QueryTypes.SELECT,
+        replacements: {
+          limit,
+          offset,
+        },
+      }),
+      db.query(totalCountQuery, {
+        type: Sequelize.QueryTypes.SELECT,
+      }),
+    ]);
+
+    const totalCount = totalCountResult[0].totalCount;
+    const totalPagu = totalCountResult[0].TOTAL_PAGU;
+
+    res.json({
+      result: results,
+      page: page,
+      limit: limit,
+      totalPages: Math.ceil(totalCount / limit),
+      totalRows: totalCount,
+      totalPagu: totalPagu,
+    });
+
     const clientIP =
       req.headers["x-forwarded-for"] || req.connection.remoteAddress;
 
@@ -330,6 +428,7 @@ export const tgupdate = async (req, res) => {
     }
   }
 };
+
 export const inquirycsv = async (req, res) => {
   const queryParams = req.query.queryParams;
 
@@ -1222,7 +1321,7 @@ export const randomQueryJnsblokir = async (req, res) => {
   const decryptedData = decodeURIComponent(
     decryptData(queryParams).replace(/"/g, "")
   );
-  console.log(decryptedData);
+  // console.log(decryptedData);
 
   try {
     let resultsQuery, totalCountQuery;

@@ -24,6 +24,7 @@ const upload = multer({ storage });
 export const simpanUser = async (req, res) => {
   upload.single("file")(req, res, async (err) => {
     if (err) {
+      // console.error("multer error on simpanUserOAuth:", err);
       return res.status(422).json({ msg: "Invalid Images" });
     }
 
@@ -490,4 +491,83 @@ export const Aktifasi = async (req, res) => {
   } catch (error) {
     return res.status(404).json({ msg: error });
   }
+};
+
+// OAuth Registration - tidak memerlukan token authentication
+export const simpanUserOAuth = async (req, res) => {
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      return res.status(422).json({ msg: "Invalid Images" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ msg: "No File Uploaded" });
+    }
+
+    const nama = req.body.name;
+    const username = req.body.username;
+    const password = req.body.password;
+    const role = req.body.role;
+    const deptlimit = req.body.deptlimit;
+    const telp = req.body.telp || "";
+    const email = req.body.email;
+    const nip = req.body.nip || "";
+    const kdkanwil = req.body.kdkanwil || "";
+    const kdkppn = req.body.kdkppn || "";
+    const oauth_provider = req.body.oauth_provider || "";
+
+    const file = req.file;
+    const fileSize = file.size;
+    const ext = path.extname(file.originalname);
+    const fileName = file.filename;
+    const url = `${req.protocol}://${req.get("host")}/images/${fileName}`;
+    const allowedType = [".png", ".jpg", ".jpeg"];
+
+    if (!allowedType.includes(ext.toLowerCase())) {
+      return res.status(422).json({ msg: "Invalid Images" });
+    }
+    if (fileSize > 1000000) {
+      return res.status(422).json({ msg: "Image must be less than 1 MB" });
+    }
+
+    // Cek apakah user sudah ada berdasarkan username, email, atau NIP
+    const cekuser = await Users.findOne({
+      where: {
+        [Sequelize.Op.or]: [{ username }, { email }, ...(nip ? [{ nip }] : [])],
+      },
+    });
+
+    if (cekuser) {
+      return res.status(404).json({
+        msg: "User dengan Username/Email/NIP tersebut sudah terdaftar",
+      });
+    }
+
+    try {
+      await Users.create({
+        name: nama,
+        username: username,
+        password: password,
+        role: 2,
+        dept_limit: deptlimit,
+        telp: telp,
+        email: email,
+        nip: nip,
+        image: fileName,
+        url: url,
+        active: 0, // Langsung aktif untuk OAuth user
+        filename: fileName,
+        filesize: fileSize,
+        ext: ext,
+        kdkanwil: kdkanwil,
+        kdkppn: kdkppn,
+        verified: "TRUE", // Langsung verified untuk OAuth user
+        oauth_provider: oauth_provider,
+      });
+      res.status(201).json({ msg: "User OAuth Berhasil Disimpan" });
+    } catch (error) {
+      console.log(error.message);
+      res.status(500).json({ msg: "Gagal menyimpan user" });
+    }
+  });
 };

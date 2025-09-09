@@ -3,7 +3,7 @@ import fs from "fs";
 
 const dbName = "dbref";
 const dbUser = "root";
-const dbPassword = "";
+const dbPassword = "ktsjkt2010!";
 const dbHost = "localhost";
 const dbPort = "3306";
 
@@ -24,6 +24,7 @@ try {
     host: dbHost,
     port: dbPort,
     dialect: "mysql",
+    logging: false,
     // logging: (log) => {
     //   const logMessage = `[${formatDate(new Date())}] [Database: ${dbName}] [Host: ${dbHost}] [Port: ${dbPort}] ${log}`;
     //   fs.appendFile("logs/sintesa.log", logMessage + "\n", (err) => {
@@ -36,7 +37,7 @@ try {
       connectTimeout: 60000, // Atur timeout koneksi ke 60 detik (opsional, sesuaikan sesuai kebutuhan)
     },
     pool: {
-      max: 20,
+      max: 4,
       min: 0,
       acquire: 30000,
       idle: 10000,

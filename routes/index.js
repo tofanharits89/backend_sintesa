@@ -6,6 +6,7 @@ import {
   hapusUser,
   hapusquery,
   simpanUser,
+  simpanUserOAuth,
   simpanquery,
   ubahPassword,
   ubahUser,
@@ -49,6 +50,7 @@ import {
   randomQuerySpending,
   randomQueryPenerimaan,
   inquirycsvtkd,
+  randomQueryTematikApbd2,
 } from "../controllers/MEBE/Inquiry.js";
 import { inquiryrkakl } from "../controllers/MEBE/Inquiryrkakl.js";
 import {
@@ -134,6 +136,7 @@ import {
   simpanOutput,
   simpanTemuan,
   simpanTren,
+  TargetRealisasi,
 } from "../controllers/Kinerja/Kinerja_Controller.js";
 import {
   hapusikpacluster,
@@ -166,6 +169,7 @@ import {
   simpanProyeksi,
 } from "../controllers/Proyeksi/ProyeksiController.js";
 import { simpanIku, simpanIkuKPPN } from "../controllers/Iku/IkuController.js";
+import { digitMiddle } from "../controllers/DigitMiddle.js";
 import {
   hapusDetailkontrakKPPN,
   hapusKontrakKPPN,
@@ -195,12 +199,11 @@ import {
 } from "../controllers/GPT/flowise.js";
 import { queryVectara } from "../controllers/Vectara/vectaraController.js";
 
-
+// --- Enhanced Reply Pesan Routes with Bearer Auth:
+import replypesanRoutes from "./replypesan.js";
 
 import { getNotifikasiById } from "../controllers/Notifikasi/Notifikasi_Controller.js";
 router.get("/api/notifikasi/:id", getNotifikasiById);
-
-
 
 import {
   tayangMonitoringBlokir,
@@ -222,15 +225,78 @@ import {
   simpanKomoditas,
 } from "../controllers/BGN/MbgControllers.js";
 
-
 import {
-  getAllBPS, rekamBPS, deleteBPS, updateBPS,
-  getAllBapanas, rekamBapanas, deleteBapanas,
-  getAllTriwulan, rekamTriwulan, deleteTriwulan,
+  getAllBPS,
+  rekamBPS,
+  deleteBPS,
+  updateBPS,
+  getAllBapanas,
+  rekamBapanas,
+  deleteBapanas,
+  getAllTriwulan,
+  rekamTriwulan,
+  deleteTriwulan,
 } from "../controllers/kertaskerjambg_cont.js";
 
+import {
+  createReply,
+  getRepliesByNotifikasiId,
+} from "../controllers/replypesan_controller.js";
+import { getFilteredPdrbEncrypted } from "../controllers/BGN/pdrb_controller.js";
+import { getFilteredNtpEncrypted } from "../controllers/BGN/ntp_controller.js";
+import { getFilteredKomoditasEncrypted } from "../controllers/BGN/komoditas_controller.js";
+import { getFilteredSummaryEncrypted } from "../controllers/BGN/summary_controller.js";
+import { getFilteredPenerimaEncrypted } from "../controllers/BGN/penerima_controller.js";
+import { getFilteredSppgEncrypted } from "../controllers/BGN/sppg_controller.js";
+import { getFilteredSpasialEncrypted } from "../controllers/BGN/spasial_controller.js";
+import { getFilteredKelompokMbgEncrypted } from "../controllers/BGN/kelompok_controller.js";
+import { getFilteredByPetugasProvEncrypted } from "../controllers/BGN/petugas_controller.js";
+import { getAllKonsumsiMbg } from "../controllers/BGN/konsumsimbg_controller.js";
+import { getPenerimaKelompokEncrypted } from "../controllers/BGN/penerima_kelompok_controller.js";
+import { getJenisSupplierEncrypted } from "../controllers/BGN/jenis_suppliercontroller.js";
+import { getKomoditasKategori } from "../controllers/BGN/komoditas_kategori_controller.js";
+import { getInflasiMTM } from "../controllers/BGN/inflasi_mtm_controller.js";
+import { getInflasiTembakau } from "../controllers/BGN/inflasi_tembakau_controller.js";
+import { getInflasiPenyedia } from "../controllers/BGN/inflasi_penyedia_controller.js";
 
-import { createReply } from "../controllers/replypesan_controller.js";
+import {
+  hapusDataKanwil,
+  SimpanData,
+  TayangDataKanwil,
+  updateDataKanwil,
+} from "../controllers/BGN/DataInputKanwil.js";
+
+import { getPerkembanganKanwil } from "../controllers/BGN/perkembangan_controller.js";
+import { verifyAuth, verifySuperAdmin } from "../middleware/BearerAuth.js";
+
+//EPA dropdown BA
+import { getKddeptList } from "../controllers/Referensi/getData.js";
+import { getAllEWS } from "../controllers/BGN/ews_controller.js";
+import { getSubsidi } from "../controllers/DataSubsidi.js";
+
+// EPA pagu real utama & soutput
+import {
+  getPaguRealUtama,
+  getPaguRealSoutput,
+} from "../controllers/Epa/KinerjaUtamaController.js";
+// import { createIsuSpesifik } from "../controllers/Epa/EpaController.js";
+import { getRealisasiBGN } from "../controllers/BGN/tarikRealisasiBGN.js";
+
+import {
+  createIsuSpesifik,
+  EditIsuSpesifik,
+} from "../controllers/Epa/EpaController.js";
+
+import {
+  createKinerja,
+  getAllKinerja,
+} from "../controllers/Epa/KinerjaUtamaController.js";
+
+import {
+  getAllData,
+  simpanData,
+  updateData,
+} from "../controllers/Epa/AnalisaController.js";
 
 router.get("/rekam/bps", getAllBPS);
 router.post("/rekam/bps", rekamBPS);
@@ -245,6 +311,15 @@ router.get("/rekam/triwulan", getAllTriwulan);
 router.post("/rekam/triwulan", rekamTriwulan);
 router.delete("/rekam/triwulan/:id", deleteTriwulan);
 
+// DATA INPUT KANWIL ROUTES
+router.post("/simpan/data/kanwil", verifyToken, SimpanData);
+router.get("/tayang/data/kanwil", verifyToken, TayangDataKanwil);
+router.delete(
+  "/mbg/hapusData/:id/:kode_kanwil/:triwulan/:type",
+  verifyToken,
+  hapusDataKanwil
+);
+router.put("/update/data/kanwil", verifyToken, updateDataKanwil);
 
 router.get("/users", verifyToken, getUsers);
 router.get("/cekusers", verifyToken, checkUser);
@@ -255,6 +330,9 @@ router.post("/login", Login);
 router.post("/login/pin", LoginPIN);
 router.get("/token", refreshToken);
 router.delete("/logout", Logout);
+
+// Digit OAuth middle endpoint
+router.get("/v3/auth/digit/middle", digitMiddle);
 //HARI LIBUR
 router.get("/libur", getLibur);
 router.post("/libur", verifyToken, insertLibur);
@@ -275,6 +353,7 @@ router.get("/getData/", verifyToken, randomQuery);
 
 router.get("/getDataTematik/", verifyToken, randomQueryTematik);
 router.get("/getDataTematikApbd/", verifyToken, randomQueryTematikApbd);
+router.get("/getDataTematikApbd2/", verifyToken, randomQueryTematikApbd2);
 router.get("/getDataBansos/", verifyToken, randomQueryBansos);
 router.get("/getDataDeviasi/", verifyToken, randomQueryDeviasi);
 router.get("/getDataKontrak/", verifyToken, randomQueryKontrak);
@@ -452,6 +531,7 @@ router.post("/kinerja/simpanIkpa_cluster", verifyToken, simpanIkpaCluster);
 
 // NOTIFIKASI
 router.post("/notifikasi/simpan", verifyToken, simpanNotifikasi);
+router.post("/api/notifikasi", verifyToken, simpanNotifikasi); // Alternative RESTful endpoint
 router.patch("/notifikasi/ubahstatus/:id", verifyToken, ubahStatus);
 router.patch(
   "/notifikasi/ubahstatusonline/:username/:isConnected",
@@ -547,15 +627,112 @@ router.get("/updatetkd/chart", dataTkd);
 router.get("/inquirycsvtkd/", inquirycsvtkd);
 
 // EPA
-// router.patch("/epa/simpanIsu/", verifyToken, simpanIsuEP);
+router.post("/epa/simpanIsu", verifyToken, createIsuSpesifik);
+router.post("/epa/editIsu", verifyToken, EditIsuSpesifik);
+router.post("/epa/simpanKinerja", verifyToken, createKinerja);
+router.get("/epa/Kinerja", verifyToken, getAllKinerja);
+router.get("/epa/TargetRealisasi", verifyToken, TargetRealisasi);
+router.post("/epa/simpanAnalisa", verifyToken, simpanData);
+router.get("/epa/tayangAnalisa", verifyToken, getAllData);
+// router.get("/analisa/:id", getDataById);
+router.post("/epa/updateAnalisa", verifyToken, updateData);
+
 // BGN
 router.post("/bgn/login", verifyToken, getDataBGN);
 router.post("/mbg/simpanKomoditas", verifyToken, simpanKomoditas);
 router.delete("/mbg/hapusKomoditas/:id/:kdkanwil", verifyToken, hapusKomoditas);
 router.get("/mbg/download", verifyToken, getTableMbg);
+router.get("/realisasi-bgn", getRealisasiBGN);
+
 //router buat balas pesan
 
-// 
-router.post("/api/replypesan/:id", createReply);
+//CHART PDRB
+router.get("/pdrb", verifyToken, getFilteredPdrbEncrypted);
+router.get("/pdrb/decrypt", verifyToken, getFilteredPdrbEncrypted);
+
+//CHART NTP
+// CHART NTP
+router.get("/ntp", verifyToken, getFilteredNtpEncrypted);
+router.get("/ntp/decrypt", verifyToken, getFilteredNtpEncrypted);
+
+// CHART KOMODITAS
+router.get("/komoditas", verifyToken, getFilteredKomoditasEncrypted);
+router.get("/komoditas/decrypt", verifyToken, getFilteredKomoditasEncrypted);
+
+// CHART SUMMARY
+router.get("/summary", verifyToken, getFilteredSummaryEncrypted);
+router.get("/summary/decrypt", verifyToken, getFilteredSummaryEncrypted);
+
+// CHART PENERIMA
+router.get("/penerima", verifyToken, getFilteredPenerimaEncrypted);
+router.get("/penerima/decrypt", verifyToken, getFilteredPenerimaEncrypted);
+
+// CHART SPPG
+router.get("/sppg", verifyToken, getFilteredSppgEncrypted);
+router.get("/sppg/decrypt", verifyToken, getFilteredSppgEncrypted);
+
+// CHART SPASIAL
+// CHART SPASIAL
+router.get("/spasial", verifyToken, getFilteredSpasialEncrypted);
+router.get("/spasial/decrypt", verifyToken, getFilteredSpasialEncrypted);
+
+// CHART KELOMPOK MBG
+router.get("/kelompokmbg", verifyToken, getFilteredKelompokMbgEncrypted);
+router.get(
+  "/kelompokmbg/decrypt",
+  verifyToken,
+  getFilteredKelompokMbgEncrypted
+);
+
+// CHART PETUGAS PROVINSI
+router.get("/petugasprov", verifyToken, getFilteredByPetugasProvEncrypted);
+router.get(
+  "/petugasprov/decrypt",
+  verifyToken,
+  getFilteredByPetugasProvEncrypted
+);
+
+// PERKEMBANGAN
+router.get("/narasi", verifyToken, getPerkembanganKanwil); // GET    /api/narasi
+
+//Grafik Korelasi
+router.get("/konsumsi-mbg", getAllKonsumsiMbg);
+
+// PENERIMA KELOMPOK - Simple & Consistent with other BGN routes
+router.get("/penerima-kelompok", getPenerimaKelompokEncrypted);
+
+// JENIS SUPPLIER - Encrypted query support
+router.get("/jenis-supplier", verifyToken, getJenisSupplierEncrypted);
+
+// KOMODITAS KATEGORI - Encrypted query support
+router.get("/komoditas-kategori", getKomoditasKategori);
+
+// Reply pesan with Enhanced Bearer Authentication
+// router.use("/api/replypesan", replypesanRoutes);
+router.get("/inflasi-mtm", getInflasiMTM);
+router.get("/inflasi-tembakau", getInflasiTembakau);
+router.get("/inflasi-penyedia", getInflasiPenyedia);
+// Get all replies for a notification (requires authentication)
+router.get("/pesan/:notifikasiId", verifyAuth, getRepliesByNotifikasiId);
+router.post("/pesan/:notifikasiId", verifySuperAdmin, createReply);
+
+//EPA dropdown BA
+router.get("/referensi/kddept", getKddeptList);
+
+// EPA pagu real utama & soutput
+router.get("/epa/pagu-real-utama", verifyToken, getPaguRealUtama);
+router.get("/epa/pagu-real-utama-soutput", verifyToken, getPaguRealSoutput);
+
+// EPA Target Realisasi
+router.get("/epa/TargetRealisasi", verifyToken, TargetRealisasi);
+
+//EWS
+router.get("/ews", getAllEWS);
+
+//DataSubsidi
+router.get("/datasubsidi", verifyToken, getSubsidi);
+
+// OAuth Registration - tidak memerlukan token
+router.post("/auth/register/oauth", simpanUserOAuth);
 
 export default router;

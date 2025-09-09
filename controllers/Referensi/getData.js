@@ -120,3 +120,31 @@ export const Ref_Data_Mysql = async (req, res) => {
     res.status(500).json({ error: errorMessage });
   }
 };
+
+export const getKddeptList = async (req, res) => {
+  const { role, kdkanwil, kdkppn } = req.query;
+  try {
+    let query = "";
+    if (role === "pusat" || role === "superadmin") {
+      query = `SELECT DISTINCT kddept, dept.nmdept FROM dbref.t_dept_2025 dept WHERE kddept <> 999 ORDER BY kddept ASC`;
+      // query = `SELECT d.kddept, dept.nmdept FROM dbref.t_satker d LEFT JOIN dbref.t_dept_2025 dept ON d.kddept = dept.kddept GROUP BY d.kddept, dept.nmdept`;
+    } else if (role === "kanwil" && kdkanwil) {
+      query = `SELECT DISTINCT a.kddept, b.nmdept FROM dbref.t_satker_kppn_2025 a LEFT JOIN dbref.t_dept_2025 b ON a.kddept = b.kddept WHERE a.kdkanwil = ? AND a.kddept <> 999  AND b.nmdept IS NOT NULL GROUP BY a.kddept, b.nmdept ORDER BY a.kddept ASC`;
+      // query = `SELECT a.kddept, b.nmdept FROM dbref.t_satker_kppn_2025 a LEFT JOIN dbref.t_dept_2025 b ON a.kddept = b.kddept WHERE a.kdkanwil = ? GROUP BY kddept,nmdept`;
+      // query = `SELECT d.kddept, dept.nmdept FROM dbref.t_satker d LEFT JOIN dbref2025.t_kppn k ON d.kdkppn = k.kdkppn LEFT JOIN dbref.t_dept_2025 dept ON d.kddept = dept.kddept WHERE k.kdkanwil = ? GROUP BY d.kddept, dept.nmdept`;
+    } else if (role === "kppn" && kdkppn) {
+      query = `SELECT DISTINCT a.kddept, b.nmdept FROM dbref.t_satker_kppn_2025 a LEFT JOIN dbref.t_dept_2025 b ON a.kddept = b.kddept WHERE a.kdkppn = ? AND a.kddept <> 999  AND b.nmdept IS NOT NULL GROUP BY a.kddept, b.nmdept ORDER BY a.kddept ASC`;
+      // query = `SELECT d.kddept, dept.nmdept FROM dbref.t_satker d LEFT JOIN dbref2025.t_kppn k ON d.kdkppn = k.kdkppn LEFT JOIN dbref.t_dept_2025 dept ON d.kddept = dept.kddept WHERE k.kdkppn = ? GROUP BY d.kddept, dept.nmdept`;
+    } else {
+      return res.status(400).json({ error: "Parameter tidak lengkap" });
+    }
+    const param = role === "kanwil" ? kdkanwil : kdkppn;
+    const results = await db.query(query, {
+      replacements: param ? [param] : [],
+      type: Sequelize.QueryTypes.SELECT,
+    });
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

@@ -1,9 +1,9 @@
-// import db from "../config/Database135MBG.js";
-import db from "../../config/Database135MBG.js";
+import db from "../../config/Database.js";
 import axios from "axios";
 import fs from "fs";
 import ioServer from "../../index.js";
 
+import { URLSearchParams } from "url";
 // ====================== Helper Emit + Log ======================
 const log = (msg) => {
   console.log(msg);
@@ -42,7 +42,7 @@ export const saveDataBGNUtama = async (cookieHeader) => {
 
     // Simpan response mentah ke file
     const jsonResponse = JSON.stringify(response.data, null, 2);
-    fs.writeFileSync("dataTampungan/response.json", jsonResponse, "utf8");
+    fs.writeFileSync("response.json", jsonResponse, "utf8");
     // log("📁 Response disimpan ke 'response.json'.");
 
     // Bersihkan dan simpan data
@@ -60,7 +60,7 @@ export const saveDataBGNUtama = async (cookieHeader) => {
 // 🔧 Membersihkan data response dari pesan error dan simpan ke file baru
 const cleanDataFromFile = async () => {
   try {
-    const rawData = fs.readFileSync("dataTampungan/response.json", "utf8");
+    const rawData = fs.readFileSync("response.json", "utf8");
 
     // Bersihkan error "Undefined array key 1"
     const updatedData = rawData
@@ -69,8 +69,8 @@ const cleanDataFromFile = async () => {
       .replace(/Undefined array key 1/g, "");
 
     // Tulis hasil pembersihan ke cleaned.json
-    fs.writeFileSync("dataTampungan/cleaned.json", updatedData, "utf8");
-    log("🧹 File 'dataTampungan/cleaned.json' berhasil diperbarui.");
+    fs.writeFileSync("cleaned.json", updatedData, "utf8");
+    log("🧹 File 'cleaned.json' berhasil diperbarui.");
   } catch (err) {
     console.error("❌ Gagal membersihkan data:", err.message);
     log(`❌ Gagal membersihkan data: ${err.message}`);
@@ -81,11 +81,11 @@ const cleanDataFromFile = async () => {
 // 📦 Menyimpan data utama dari cleaned.json ke database
 const saveCleanedDataToDB = async () => {
   try {
-    const rawData = fs.readFileSync("dataTampungan/cleaned.json", "utf8");
+    const rawData = fs.readFileSync("cleaned.json", "utf8");
 
     if (!rawData || rawData.trim() === "") {
       log("❌ File cleaned.json kosong!");
-      throw new Error("❌ File dataTampungan/cleaned.json kosong!");
+      throw new Error("❌ File cleaned.json kosong!");
     }
 
     let data;
@@ -105,7 +105,6 @@ const saveCleanedDataToDB = async () => {
       return;
     }
 
-    // Truncate the table before inserting new data
     await db.query(`TRUNCATE TABLE data_bgn.data_sppg`);
     await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -113,44 +112,59 @@ const saveCleanedDataToDB = async () => {
       try {
         await db.query(
           `INSERT INTO data_bgn.data_sppg (
-          WilProv, WilProvNama, WilKab, WilKabNama, WilKec, WilKecNama,
-          WilKode, WilNama, WilKeyword, wilID, name, hc_key, Nama, prov,
-          value, jum_total, jum_total_2, jum_total_3, jum_total_4, jum_total_5,
-          jum_potensi, jum_dapur, jum_penerima, wil_level
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            WilProv, WilProvNama, WilKab, WilKabNama, WilKec, WilKecNama,
+            WilKode, WilNama, WilKeyword, wilID, name, hc_key, Nama, prov,
+            value, jum_total, jum_total_2, jum_total_3, jum_total_4, jum_total_5,
+            jum_total_6, jum_total_7, jum_total_8, jum_total_9, jum_total_10,
+            jum_total_11, jum_total_12, jum_potensi, jum_dapur, jum_penerima, wil_level
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           {
             replacements: [
-              item.WilProv,
-              item.WilProvNama,
-              item.WilKab,
-              item.WilKabNama,
-              item.WilKec,
-              item.WilKecNama,
-              item.WilKode,
-              item.WilNama,
-              item.WilKeyword,
-              item.wilID,
-              item.name,
-              item["hc-key"],
-              item.Nama,
-              item.prov,
-              item.value,
-              item.jum_total,
-              item.jum_total_2,
-              item.jum_total_3,
-              item.jum_total_4,
-              item.jum_total_5,
-              item.jum_potensi,
-              item.jum_dapur,
-              item.jum_penerima,
-              item.wil_level,
+              item.WilProv ?? "",
+              item.WilProvNama ?? "",
+              item.WilKab ?? "",
+              item.WilKabNama ?? "",
+              item.WilKec ?? "",
+              item.WilKecNama ?? "",
+              item.WilKode ?? "",
+              item.WilNama ?? "",
+              item.WilKeyword ?? "",
+              item.wilID ?? "",
+              item.name ?? "",
+              item["hc-key"] ?? "",
+              item.Nama ?? "",
+              item.prov ?? "",
+              item.value ?? 0,
+              item.jum_total ?? 0,
+              item.jum_total_2 ?? 0,
+              item.jum_total_3 ?? 0,
+              item.jum_total_4 ?? 0,
+              item.jum_total_5 ?? 0,
+              item.jum_total_6 ?? 0,
+              item.jum_total_7 ?? 0,
+              item.jum_total_8 ?? 0,
+              item.jum_total_9 ?? 0,
+              item.jum_total_10 ?? 0,
+              item.jum_total_11 ?? 0,
+              item.jum_total_12 ?? 0,
+              item.jum_potensi ?? 0,
+              item.jum_dapur ?? 0,
+              item.jum_penerima ?? 0,
+              item.wil_level ?? 0,
             ],
-            type: db.QueryTypes.INSERT,
+            type: db.Sequelize.QueryTypes.INSERT,
           }
         );
       } catch (err) {
-        console.error(`❌ Gagal insert `, err.message);
-        log(`❌ Gagal insert data untuk item ${item.WilNama}`);
+        console.error(
+          `❌ Gagal insert untuk ${item.WilNama || item.name || "Unknown"}:`,
+          err.message
+        );
+        log(
+          `❌ Gagal insert data untuk item ${
+            item.WilNama || item.name || "Unknown"
+          }: ${err.message}`
+        );
       }
     }
 
@@ -164,6 +178,7 @@ const saveCleanedDataToDB = async () => {
 
 // Fungsi untuk menyimpan data by_jenis
 export const saveByJenis = async (data) => {
+  await db.query(`truncate data_bgn.by_jenis`);
   for (const item of data) {
     await db.query(
       `INSERT INTO data_bgn.by_jenis (id, name, y, title, detail) 
@@ -179,6 +194,7 @@ export const saveByJenis = async (data) => {
 
 // Fungsi untuk menyimpan data by_kelompok
 export const saveByKelompok = async (data) => {
+  await db.query(`truncate data_bgn.by_kelompok`);
   for (const item of data) {
     let idDetail = null;
     let tipeDetail = null;
@@ -219,6 +235,7 @@ export const saveByKelompok = async (data) => {
 
 // Fungsi untuk menyimpan data by_penerima
 export const saveByPenerima = async (data) => {
+  await db.query(`truncate data_bgn.by_penerima`);
   for (const item of data) {
     let idDetail = null;
     let tipeDetail = null;
@@ -259,6 +276,7 @@ export const saveByPenerima = async (data) => {
 
 // Fungsi untuk menyimpan data by_petugas
 export const saveByPetugas = async (data) => {
+  await db.query(`truncate data_bgn.by_petugas`);
   for (const item of data) {
     await db.query(
       `INSERT INTO data_bgn.by_petugas (id, name, y, title, detail) 
@@ -274,6 +292,7 @@ export const saveByPetugas = async (data) => {
 
 // Fungsi untuk menyimpan data by_supplier
 export const saveBySupplier = async (data) => {
+  await db.query(`truncate data_bgn.by_supplier`);
   for (const item of data) {
     await db.query(
       `INSERT INTO data_bgn.by_supplier (id, name, y, title, detail) 
@@ -289,6 +308,7 @@ export const saveBySupplier = async (data) => {
 
 // Fungsi untuk menyimpan data by_mitra
 export const saveByMitra = async (data) => {
+  await db.query(`truncate data_bgn.by_mitra`);
   for (const item of data) {
     await db.query(
       `INSERT INTO data_bgn.by_mitra (id, name, y, title, detail) 
@@ -304,6 +324,7 @@ export const saveByMitra = async (data) => {
 
 // Fungsi untuk menyimpan data by_sekarang
 export const saveBySekarang = async (data) => {
+  await db.query(`truncate data_bgn.by_sekarang`);
   await db.query(
     `INSERT INTO data_bgn.by_sekarang (jum_produksi, jum_terima, detail) 
      VALUES (?, ?, ?)
@@ -317,6 +338,7 @@ export const saveBySekarang = async (data) => {
 
 // Fungsi untuk menyimpan data by_kemarin
 export const saveByKemarin = async (data) => {
+  await db.query(`truncate data_bgn.by_kemarin`);
   await db.query(
     `INSERT INTO data_bgn.by_kemarin (jum_produksi, jum_terima, detail) 
      VALUES (?, ?, ?)
@@ -378,34 +400,137 @@ export const saveUpdate = async (username) => {
   // TAMBAHKAN PENGAMBILAN DATA DARI SERVER MONEV DISINI
   await db.query(`TRUNCATE data_bgn.data_summary_mbg`);
   await db.query(`INSERT INTO data_bgn.data_summary_mbg (
-  mbg,
-  kdgiat,
-  kdoutput,
-  kdsoutput,
-  pagu,
-  realisasi,
-  blokir
+mbg,
+kdgiat,
+kdoutput,
+kdsoutput,
+pagu,
+realisasi,
+blokir
 )
 SELECT 
-  'UTAMA',
-  a.kdgiat,
-  a.kdoutput,
-  a.kdsoutput,
-  ROUND(SUM(a.pagu), 0) AS pagu,
-  ROUND(SUM(
-    real1 + real2 + real3 + real4 + real5 + real6 + 
-    real7 + real8 + real9 + real10 + real11 + real12
-  ), 0) AS realisasi,
-  ROUND(SUM(a.blokir), 0) AS blokir
+'UTAMA',
+a.kdgiat,
+a.kdoutput,
+a.kdsoutput,
+ROUND(SUM(a.pagu), 0) AS pagu,
+ROUND(SUM(
+  real1 + real2 + real3 + real4 + real5 + real6 + 
+  real7 + real8 + real9 + real10 + real11 + real12
+), 0) AS realisasi,
+ROUND(SUM(a.blokir), 0) AS blokir
 FROM 
-  monev2025.a_pagu_real_bkpk_dja_2025 a 
+monev2025.a_pagu_real_bkpk_dja_2025 a 
 WHERE 
-  a.MBG IS NOT NULL 
-  AND a.mbg = 'UTAMA' 
-  AND a.kdoutput NOT IN ('RAB', 'RBV')
+a.MBG IS NOT NULL 
+AND a.mbg = 'UTAMA' 
+AND a.kdoutput NOT IN ('RAB', 'RBV')
 GROUP BY 
-  a.kdgiat, a.kdoutput, a.kdsoutput, a.MBG;
+a.kdgiat, a.kdoutput, a.kdsoutput, a.MBG;
 `);
+  await db.query(`TRUNCATE data_bgn.data_summary_prov`);
+
+  await db.query(`INSERT INTO data_bgn.data_summary_prov(wilkode, wilnama,jumlahsppg)
+SELECT wilprov AS wilkode,provinsi AS wilnama,COUNT(DISTINCT namasppg) AS jumlahsppg 
+   FROM data_bgn.by_kelompok_detail 
+   GROUP BY provinsi, wilprov 
+   ORDER BY wilprov;`);
+
+  await db.query(`UPDATE data_bgn.data_summary_prov a
+    JOIN (
+        SELECT
+            k.provinsi,
+            SUM(k.jumlah) AS jumlah_penerima
+        FROM data_bgn.by_penerima_detail k
+        GROUP BY k.provinsi
+    ) k ON a.wilnama = k.provinsi
+    JOIN (
+        SELECT
+            l.provinsi,
+            COUNT(*) AS jumlah_kelompok
+        FROM data_bgn.by_kelompok_detail l
+        GROUP BY l.provinsi
+    ) l ON a.wilnama = l.provinsi
+    JOIN (
+        SELECT
+            m.kodewil,
+            COUNT(*) AS jumlah_petugas
+        FROM data_bgn.by_petugas_prov m
+        GROUP BY m.kodewil
+    ) m ON a.wilnama = m.kodewil
+    JOIN (
+        SELECT
+            n.provinsi,
+            COUNT(*) AS jumlah_supplier
+        FROM data_bgn.by_supplier_prov n
+        GROUP BY n.provinsi
+    ) n ON a.wilnama = n.provinsi
+    SET
+        a.jumlahpenerima = k.jumlah_penerima,
+        a.jumlahkelompok = l.jumlah_kelompok,
+        a.jumlahpetugas = m.jumlah_petugas,
+        a.jumlahsupplier = n.jumlah_supplier;
+    
+    `);
+
+  // Input kolom kdkanwil & nmkanwil
+
+  // by_kelompok_detail
+  await db.query(`
+    UPDATE data_bgn.by_kelompok_detail a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.provinsi = b.wilnama
+    SET a.kdkanwil = b.kdkanwil, a.nmkanwil = b.nmkanwil
+  `);
+
+  // Update kolom name pada by_kelompok_detail berdasarkan id_kelompok
+  await db.query(`
+    UPDATE data_bgn.by_kelompok_detail a
+    LEFT JOIN data_bgn.by_kelompok c ON a.id_kelompok = c.id
+    SET a.name = c.name
+  `);
+
+  // Update kolom regional pada by_kelompok_detail berdasarkan provinsi
+  await db.query(`
+    UPDATE data_bgn.by_kelompok_detail a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.provinsi = b.wilnama
+    SET a.regional = b.regional
+  `);
+
+  // by_penerima_detail
+  await db.query(`
+    UPDATE data_bgn.by_penerima_detail a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.provinsi = b.wilnama
+    SET a.kdkanwil = b.kdkanwil, a.nmkanwil = b.nmkanwil
+  `);
+
+  // by_petugas_prov
+  await db.query(`
+    UPDATE data_bgn.by_petugas_prov a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.kodeWil = b.wilnama
+    SET a.kdkanwil = b.kdkanwil, a.nmkanwil = b.nmkanwil
+  `);
+
+  // by_supplier_prov
+
+  await db.query(`
+    UPDATE data_bgn.by_supplier_prov a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.provinsi = b.wilnama
+    SET a.kdkanwil = b.kdkanwil, a.nmkanwil = b.nmkanwil
+  `);
+
+  // Update kolom regional pada by_supplier_prov berdasarkan provinsi
+  await db.query(`
+    UPDATE data_bgn.by_supplier_prov a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.provinsi = b.wilnama
+    SET a.regional = b.regional
+  `);
+
+  // data_summary_prov
+  await db.query(`
+    UPDATE data_bgn.data_summary_prov a
+    LEFT JOIN data_bgn.ref_provinsi b ON a.wilnama = b.wilnama
+    SET a.kdkanwil = b.kdkanwil, a.nmkanwil = b.nmkanwil
+  `);
 
   // Simpan log update
   await db.query(

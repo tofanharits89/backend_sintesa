@@ -11,6 +11,7 @@ import Sequelize from "sequelize";
 import Encrypt from "../acak/Random.js";
 const { Op } = Sequelize;
 import ioServer from "../index.js";
+import axios from "axios";
 
 export const getUsers = async (req, res) => {
   try {
@@ -131,7 +132,7 @@ export const Register = async (req, res) => {
 };
 
 export const Login = async (req, res) => {
-  console.log('LOGIN REQUEST:', req.body)
+  console.log("LOGIN REQUEST:", req.body);
   try {
     const user = await Users.findAll({
       where: {
@@ -142,6 +143,17 @@ export const Login = async (req, res) => {
       return res
         .status(200)
         .json({ success: false, msg: "User tidak ditemukan" });
+    }
+    // Blokir beberapa user tertentu
+    // const blockedUsers = ["", "user1", "user2"];
+    // if (blockedUsers.includes(user[0].username)) {
+    //   return res.status(200).json({ success: false, blocked: true, msg: "Akses tidak diizinkan" });
+    // }
+    // Blokir user tertentu
+    if (user[0].username === "") {
+      return res
+        .status(200)
+        .json({ success: false, blocked: true, msg: "Akses tidak diizinkan" });
     }
     const match = (await req.body.password) === user[0].password;
     if (!match) {
@@ -319,12 +331,249 @@ export const Login = async (req, res) => {
   }
 };
 
+// export const Logout = async (req, res) => {
+//   req.session.destroy((err) => {
+//     if (err) {
+//       return res.status(500).json({ message: "Failed to destroy session" });
+//     }
+//     res.clearCookie("accessToken");
+//     return res.sendStatus(200);
+//   });
+// };
+
+// export const Logout = async (req, res) => {
+//   try {
+//     // pastikan session.destroy dijalankan dan menunggu selesai
+//     await new Promise((resolve) => {
+//       if (!req.session) return resolve(); // tidak ada session, lanjut
+//       req.session.destroy((err) => {
+//         if (err) {
+//           console.error("[Logout] session.destroy error:", err);
+//         }
+//         resolve();
+//       });
+//     });
+
+//     // lakukan request ke service logout eksternal dan tunggu hasilnya
+//     try {
+//       // 1) ambil state yang dikirim frontend (query param atau body)
+//       const incomingState =
+//         req.query?.state ||
+//         req.body?.state ||
+//         req.session?.logout_state ||
+//         Date.now().toString();
+//       // optional: simpan state ke session untuk verifikasi di callback jika perlu
+//       if (req.session) req.session.logout_state = incomingState;
+
+//       const digitBase = (
+//         process.env.DIGIT_BASE_URL || "http://10.216.83.10"
+//       ).replace(/\/$/, "");
+//       const clientId = process.env.DIGIT_CLIENT_ID || "";
+//       // const redirectUri = "https://localhost";
+//       // process.env.DIGIT_LOGOUT_REDIRECT_URI ||
+//       // "http://localhost:88/v3/auth/logout/callback";
+
+//       const redirectUri = process.env.VITE_PUBLIC_URL || "http://localhost";
+
+//       const logoutUrl = `${digitBase}/logout-oauth2-new?response_type=code&client_id=${encodeURIComponent(
+//         clientId
+//       )}&redirect_uri=${encodeURIComponent(
+//         redirectUri
+//       )}&state=${encodeURIComponent(incomingState)}`;
+
+//       console.log("[Logout] calling external logout:", logoutUrl);
+//       const axiosRes = await axios.get(logoutUrl, { timeout: 5000 });
+//       console.log(
+//         "[Logout] external logout response:",
+//         axiosRes.status,
+//         axiosRes.data
+//       );
+//     } catch (axErr) {
+//       console.warn("[Logout] external logout failed:", axErr.message || axErr);
+//     }
+
+//     // lanjutkan proses logout lokal walau eksternal gagal
+//     //    try {
+//     //   const logoutUrl = `http://10.216.83.10/logout-oauth2-new?response_type=code&client_id=${
+//     //     process.env.DIGIT_CLIENT_ID
+//     //   }&redirect_uri=${"http://localhost"}&state=${state}`;
+//     //   console.log("[Logout] calling external logout:", logoutUrl);
+//     //   const axiosRes = await axios.get(logoutUrl, { timeout: 5000 });
+//     //   console.log(
+//     //     "[Logout] external logout response:",
+//     //     axiosRes.status,
+//     //     axiosRes.data
+//     //   );
+//     // } catch (axErr) {
+//     //   console.warn("[Logout] external logout failed:", axErr.message || axErr);
+//     // }
+
+//     // bersihkan cookie dan kirim status
+//     res.clearCookie("accessToken");
+//     return res.sendStatus(200);
+//   } catch (error) {
+//     console.error("[Logout] unexpected error:", error);
+//     return res
+//       .status(500)
+//       .json({ message: "Failed to logout", error: String(error) });
+//   }
+// };
+
 export const Logout = async (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      return res.status(500).json({ message: "Failed to destroy session" });
+  try {
+    // 1) ambil state SEBELUM destroy session
+    const incomingState =
+      req.query?.state ||
+      req.body?.state ||
+      req.session?.logout_state ||
+      req.query?.digit_status ||
+      Date.now().toString();
+
+    // 2) simpan state ke session SEBELUM destroy
+    if (req.session) {
+      req.session.logout_state = incomingState;
     }
-    res.clearCookie("accessToken");
-    return res.sendStatus(200);
-  });
+
+    // 3) destroy session setelah state disimpan
+    await new Promise((resolve) => {
+      if (!req.session) return resolve();
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("[Logout] session.destroy error:", err);
+        }
+        resolve();
+      });
+    });
+
+    // 4) clear cookie
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    // 5) PERBAIKAN: return JSON response dengan logout URL untuk frontend handle
+    const digitBase = (
+      process.env.DIGIT_BASE_URL || "http://10.216.83.10"
+    ).replace(/\/$/, "");
+    const clientId = process.env.DIGIT_CLIENT_ID || "";
+
+    if (clientId) {
+      const redirectUri = process.env.VITE_PUBLIC_URL || "http://localhost";
+
+      const logoutUrl = `${digitBase}/logout-oauth2-new?response_type=code&client_id=${encodeURIComponent(
+        clientId
+      )}&redirect_uri=${encodeURIComponent(
+        redirectUri
+      )}&state=${encodeURIComponent(incomingState)}`;
+
+      console.log("[Logout] logout URL generated:", logoutUrl);
+
+      // PERBAIKAN: return JSON dengan logout URL, biarkan frontend yang handle redirect
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful",
+        logoutUrl: logoutUrl,
+        requiresDigitLogout: true,
+      });
+    } else {
+      console.log("[Logout] No DIGIT config, local logout only");
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful",
+        logoutUrl: null,
+        requiresDigitLogout: false,
+      });
+    }
+  } catch (error) {
+    console.error("[Logout] unexpected error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to logout",
+      error: String(error),
+    });
+  }
 };
+
+// ...existing code...
+// export const Logout = async (req, res) => {
+//   try {
+//     // 1) PERBAIKAN: ambil state SEBELUM destroy session
+//     const incomingState =
+//       req.query?.state ||
+//       req.body?.state ||
+//       req.session?.logout_state ||
+//       Date.now().toString();
+
+//     // 2) PERBAIKAN: simpan state ke session SEBELUM destroy (jika diperlukan untuk callback)
+//     if (req.session) {
+//       req.session.logout_state = incomingState;
+//     }
+
+//     // 3) destroy session setelah state disimpan
+//     await new Promise((resolve) => {
+//       if (!req.session) return resolve();
+//       req.session.destroy((err) => {
+//         if (err) {
+//           console.error("[Logout] session.destroy error:", err);
+//         }
+//         resolve();
+//       });
+//     });
+
+//     // 4) PERBAIKAN: gunakan env yang sudah ada atau fallback yang lebih baik
+//     try {
+//       const digitBase = (
+//         process.env.DIGIT_BASE_URL || "http://10.216.83.10"
+//       ).replace(/\/$/, "");
+
+//       const clientId = process.env.DIGIT_CLIENT_ID || "";
+
+//       // PERBAIKAN: gunakan VITE_PUBLIC_URL yang sudah ada di .env
+//       const redirectUri = process.env.VITE_PUBLIC_URL
+//         ? `${process.env.VITE_PUBLIC_URL}/v3/auth/logout/callback`
+//         : "http://localhost:88/v3/auth/logout/callback";
+
+//       // PERBAIKAN: tambah validasi clientId tidak kosong
+//       if (!clientId) {
+//         console.warn(
+//           "[Logout] DIGIT_CLIENT_ID is empty, skipping external logout"
+//         );
+//         throw new Error("Client ID not configured");
+//       }
+
+//       const logoutUrl = `${digitBase}/logout-oauth2-new?response_type=code&client_id=${encodeURIComponent(
+//         clientId
+//       )}&redirect_uri=${encodeURIComponent(
+//         redirectUri
+//       )}&state=${encodeURIComponent(incomingState)}`;
+
+//       console.log("[Logout] calling external logout:", logoutUrl);
+//       const axiosRes = await axios.get(logoutUrl, { timeout: 5000 });
+//       console.log(
+//         "[Logout] external logout response:",
+//         axiosRes.status,
+//         axiosRes.data
+//       );
+//     } catch (axErr) {
+//       console.warn("[Logout] external logout failed:", axErr.message || axErr);
+//       // Lanjutkan proses logout lokal walau eksternal gagal
+//     }
+
+//     // 5) PERBAIKAN: bersihkan cookie dengan opsi yang lebih lengkap
+//     res.clearCookie("accessToken", {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "strict",
+//     });
+
+//     return res
+//       .status(200)
+//       .json({ success: true, message: "Logout successful" });
+//   } catch (error) {
+//     console.error("[Logout] unexpected error:", error);
+//     return res
+//       .status(500)
+//       .json({ message: "Failed to logout", error: String(error) });
+//   }
+// };

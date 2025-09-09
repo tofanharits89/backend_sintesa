@@ -357,7 +357,6 @@ export const getDataKinerja = async (req, res) => {
 
 export const chartKinerja = async (req, res) => {
   const queryParams = req.query.queryParams;
-console.log(queryParams);
 
   const decryptedData = decryptData(queryParams).replace(/"/g, "");
 
@@ -606,7 +605,32 @@ export const simpanOutput = async (req, res) => {
     res.status(500).json({ msg: "Gagal menyimpan data" });
   }
 };
+export const TargetRealisasi = async (req, res) => {
+  const queryParams = req.query.queryParams;
 
+  const decryptedData = decryptData(queryParams).replace(/"/g, "");
+  console.log(decryptedData);
+  try {
+    const resultsQuery = `${decryptedData} `;
+
+    const [results] = await db.query(resultsQuery, {
+      logging: console.log, // Aktifkan logging untuk melihat query yang dieksekusi
+    });
+
+    console.log("Query Results:", results);
+
+    res.json({
+      result: results,
+    });
+    console.log(results);
+  } catch (error) {
+    console.error("Error in processing query:", error);
+    const errorMessage = error.original
+      ? error.original.sqlMessage
+      : "Terjadi kesalahan dalam memproses permintaan.";
+    res.status(500).json({ error: errorMessage });
+  }
+};
 export const hapusoutput = async (req, res) => {
   try {
     const query = await Output_Model.findOne({
